@@ -1,0 +1,9 @@
+ ✔ Update print @done (16-04-06 07:40)
+ ✔ Basic matrix functions and tests @done (16-04-06 07:40)
+ ☐ Enumeration, each over columns, each over rows, each element, each reverse, each column/row reversed
+ ☐ Map to Matrix
+ ☐ Select rows
+ ☐ Select columns
+ ☐ Slice/Mask rows and columns
+ ☐ Specs
+ ☐ Float, Double, Complex, Double Complex and integer types
