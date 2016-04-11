@@ -1,8 +1,13 @@
 module RMatrix
   class Vector < RMatrix::Matrix
 
-    def initialize(source)
-      super
+    def initialize(source, typecode=Typecode::FLOAT)
+      if narray
+        self.narray = narray
+        self.matrix = NMatrix.refer(matrix)
+      else
+        super
+      end
       raise "Invalid dimensions #{shape.join(?x).reverse}. Vector must be eiter Nx1 or 1xM" unless [rows, columns].include?(1) && shape.length == 2
     end
 
@@ -19,13 +24,17 @@ module RMatrix
     end
 
     def inspect
-      elms = narray.to_a.flatten
+      self.class.inspect_vector(self)
+    end
+
+    def self.inspect_vector(v)
+      elms = v.narray.to_a.flatten
       print = elms.first(10)
       has_more = elms.length > 10
-      if rows == 1
-        "Vector(#{narray.length})\nV[#{print.join(", ") + (has_more ? ',...' : '')}]"
+      if v.rows == 1
+        "Vector(#{v.narray.length})\nV[#{print.join(", ") + (has_more ? ',...' : '')}]"
       else
-        "Vector(#{narray.length})\nV[\n [#{print.join("],\n [") + (has_more ? "\n  ..." : '')}]\n]"
+        "Vector(#{v.narray.length})\nV[\n [#{print.join("],\n [") + (has_more ? "\n  ..." : '')}]\n]"
       end
     end
   end

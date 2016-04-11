@@ -1,2 +1,2 @@
-require "rmatrix/matrix"
-require "rmatrix/vector"
+require_relative "matrix"
+require_relative "vector"

@@ -4,7 +4,7 @@ class RMatrixTest < Minitest::Test
 
   def setup
     M.seed(12345)
-    @big   = M['1000x1000'].random! * 1000
+    @big   = M.blank(1000, 1000).random! * 1000
     @small = [
       M[[3, 7, 2],
         [9, 8, 1],
@@ -43,16 +43,6 @@ class RMatrixTest < Minitest::Test
     assert_equal @small[0].T, M[[3.0, 9.0, 4.0], [7.0, 8.0, 4.0], [2.0, 1.0, 2.0]]
     assert_equal @small[1].T, M[[1.0, 8.0, 4.0], [9.0, 8.0, 8.0], [2.0, 9.0, 7.0]]
     assert_equal @small[2].T, M[[7.0, 5.0, 7.0], [2.0, 4.0, 3.0], [5.0, 0.0, 6.0]]
-  end
-
-  def test_one_by_n_is_vector
-    assert M[1,2,3].class == RMatrix::Vector
-    assert_raises(RuntimeError){ V[[1,2,3],[4,5,6]]}
-  end
-
-  def test_n_by_one_is_vector
-    assert M[[1],[2],[3]].class == RMatrix::Vector
-    assert_raises(RuntimeError){ V[[1,2],[3],[4]]}
   end
 
   def test_determinant
@@ -125,15 +115,15 @@ class RMatrixTest < Minitest::Test
   end
 
   def test_random
-    assert M['10x10'].random!.mean != 0
+    assert M.blank(10,10).random!.mean != 0
   end
 
   def test_fill
-    assert M['10x10'].fill!(5).mean == 5
+    assert M.blank(10,10).fill!(5).mean == 5
   end
 
   def test_reshape
-    assert_equal M['10x10'].fill!(5).reshape(5, 20).shape, [5,20]
+    assert_equal M.blank(10,10).fill!(5).reshape(5, 20).shape, [5,20]
   end
 
   def test_sort

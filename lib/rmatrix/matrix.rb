@@ -1,19 +1,22 @@
 module RMatrix
   class Matrix
     require 'narray'
+    require_relative 'typecode'
     include Enumerable
 
     attr_accessor :invert_next_operation, :matrix, :narray, :typecode
 
-    def initialize(source, narray: nil, typecode: 'float')
+    def initialize(source, typecode=Typecode::FLOAT)
       self.typecode = typecode
-      if [Symbol, String].include?(source.class)
-        dimensions = "#{source}".split("x").map(&:to_i)
-        source = NArray.new(typecode, dimensions.inject(:*)).reshape(dimensions[1], dimensions[0])
-      end
+      self.narray   = two_dimensional(source, typecode)
+    end
 
-      self.narray = NArray.refer(narray || two_dimensional(source, typecode))
-      self.matrix = NMatrix.refer(self.narray)
+    def matrix
+      @matrix ||= NMatrix.refer(narray)
+    end
+
+    def self.blank(rows, cols, typecode=Typecode::FLOAT)
+      self.new(NArray.new(typecode, rows * cols).reshape(cols, rows), typecode)
     end
 
     def _dump(level)
@@ -22,7 +25,7 @@ module RMatrix
 
     def self._load arg
       typecode, columns, rows, as_str = arg.split(":",4)
-      Matrix.new(nil, narray: NArray.to_na(as_str.to_s, typecode.to_i).reshape(columns.to_i, rows.to_i))
+      Matrix.new(NArray.to_na(as_str.to_s, typecode.to_i).reshape(columns.to_i, rows.to_i), typecode.to_i)
     end
 
     def each(&block)
@@ -40,7 +43,7 @@ module RMatrix
           yield elm
         end
       ).to_type(typecode)
-      Matrix.new(as_na.reshape(*shape), typecode: typecode)
+      Matrix.new(as_na.reshape(*shape), typecode)
     end
 
     def coerce(other)
@@ -61,16 +64,28 @@ module RMatrix
     end
 
     def sum_rows
-      Matrix.new(sum(0), typecode: typecode)
+      Matrix.new(sum(0), typecode)
     end
 
     def sum_columns
-      Matrix.new(sum(1), typecode: typecode)
+      Matrix.new(sum(1), typecode)
     end
 
     def two_dimensional(source, type)
-      source = [source] if Numeric === source
-      source = NArray.to_na(source).to_type(type)
+      case source
+      when NArray
+        if NMatrix === source
+          @matrix = source
+          source = NArray.refer(source)
+        end
+      when Numeric
+        source = NArray.to_na([source])
+      else
+        source = NArray.to_na(source)
+      end
+
+      source = source.to_type(type) unless type == source.typecode
+
       case source.dim
       when 1
         source.reshape(source.length, 1)
@@ -96,7 +111,7 @@ module RMatrix
           result[i] << cofactor(i, j)
         end
       end
-      return Matrix.new(result, typecode: typecode)
+      return Matrix.new(result, typecode)
     end
 
     def determinant
@@ -118,18 +133,18 @@ module RMatrix
     def *(other)
       if other.kind_of?(Matrix)
         raise "Matrix A columns(#{self.columns}) != Matrix B rows(#{other.columns})" if other.rows != self.columns
-        Matrix.new(self.matrix * other.matrix, typecode: typecode)
+        Matrix.new(self.matrix * other.matrix, typecode)
       else
-        Matrix.new(apply_scalar(:*, other), typecode: typecode)
+        Matrix.new(apply_scalar(:*, other), typecode)
       end
     end
 
     def mult(other)
-      Matrix.new(apply_elementwise(:*, other), typecode: typecode)
+      Matrix.new(self.narray * other.narray, typecode)
     end
 
     def ==(other)
-      self.matrix == Matrix[other].matrix
+      self.narray == Matrix[other].narray
     end
 
     def to_s
@@ -145,6 +160,8 @@ module RMatrix
     end
 
     def inspect
+      return Vector::inspect_vector(self) if [rows, columns].include?(1)
+
       inspect_rows    = [10, self.rows].min
       inspect_columns = [10, self.columns].min
       more_rows       = inspect_rows    < self.rows
@@ -161,21 +178,11 @@ module RMatrix
 
 
     def [](*args)
-      args.all?{|x| Fixnum === x } ? narray[*args.reverse] : Matrix.new(narray[*args.reverse], typecode: typecode)
+      args.all?{|x| Fixnum === x } ? narray[*args.reverse] : Matrix.new(narray[*args.reverse], typecode)
     end
 
     def transpose
-      Matrix.new(self.matrix.transpose, typecode: typecode)
-    end
-
-    def self.new(*args, &blk)
-      result = super
-      if result.class == Matrix && (result.rows == 1 || result.columns == 1)
-        vect = V[1]
-        vect.typecode, vect.matrix, vect.narray = result.typecode, result.matrix, result.narray
-        result = vect
-      end
-      result
+      Matrix.new(self.matrix.transpose, typecode)
     end
 
     def self.[](*inputs)
@@ -183,7 +190,7 @@ module RMatrix
         inputs[0]
       elsif inputs.length == 1 && [String, Symbol].include?(inputs[0].class)
         if ['byte', 'sint', 'int', 'sfloat', 'float', 'scomplex', 'complex', 'object'].include?(inputs[0])
-          ->(*source){ Matrix.new(source, typecode: inputs[0]) }
+          ->(*source){ Matrix.new(source, inputs[0]) }
         else
           Matrix.new(inputs[0])
         end
@@ -201,7 +208,7 @@ module RMatrix
 
     def self.gen_matrix_delegator(name)
       define_method(name) do |*args, &blk|
-        Matrix.new(matrix.send(name, *args, &blk), typecode: typecode)
+        Matrix.new(matrix.send(name, *args, &blk), typecode)
       end
     end
 
@@ -213,7 +220,7 @@ module RMatrix
 
     def self.gen_typeconstructor(name)
       define_singleton_method(name) do
-        ->(*source){ Matrix.new(source, typecode: name.to_s) }
+        ->(*source){ Matrix.new(source, name.to_s) }
       end
     end
 
@@ -222,25 +229,26 @@ module RMatrix
       :^ => 'xor',
       :| => 'or'
     }
-    def translate_op(op)
+    def self.translate_op(op)
       OPERATIONS_MAP.fetch(op, op)
     end
 
     [:fill!, :random!, :indgen!].each(&method(:gen_mutator))
     [:reshape, :sort, :sort_index, :inverse, :lu, :delete_at, :where, :where2, :not, :-@].each(&method(:gen_matrix_delegator))
-    [:sum, :prod, :mean, :stddev, :rms, :rmsdev, :min, :max, :shape].each(&method(:gen_delegator))
+    [:sum, :prod, :mean, :stddev, :rms, :rmsdev, :min, :max, :shape, :to_a].each(&method(:gen_delegator))
     [:byte, :sint, :int, :sfloat, :float, :scomplex, :complex, :object].each(&method(:gen_typeconstructor))
 
     [:+, :/, :-, :**, :&, :^, :|].each do |op|
+      op = translate_op(op)
       define_method(op) do |other|
-        op = translate_op(op)
-        result = if other.kind_of?(Matrix)
+        result = case other
+        when Matrix
           apply_elementwise(op, other)
         else
           apply_scalar(op, other)
         end
         Matrix.new(
-          result, typecode: typecode
+          result, typecode
         )
       end
     end
@@ -251,9 +259,10 @@ module RMatrix
 
     private
       def test_inverse
-        inverse = self.invert_next_operation
-        self.invert_next_operation = false
-        return inverse
+        if self.invert_next_operation
+          self.invert_next_operation = false
+          return true
+        end
       end
 
       def cofactor(i, j)
@@ -266,17 +275,18 @@ module RMatrix
         if test_inverse
           other.narray.send(op, self.narray)
         else
-          narray.send(op, Matrix[other].narray)
+          narray.send(op, other.narray)
         end
       end
 
       def apply_scalar(op, other)
         if test_inverse
-          Matrix[other].narray.send(op, self.narray)
+          other.send(op, self.narray)
         else
-          narray.send(op, Matrix[other].narray)
+          narray.send(op, other)
         end
       end
+
   end
 
   class ::NArray; include Enumerable; end
