@@ -2,6 +2,9 @@ module RMatrix
   class Matrix
     require 'narray'
     require_relative 'typecode'
+    require_relative 'gpu/gpu'
+    require_relative 'arch'
+
     include Enumerable
 
     attr_accessor :invert_next_operation, :matrix, :narray, :typecode
@@ -252,6 +255,21 @@ module RMatrix
         )
       end
     end
+
+    def self.gpu_capable(method)
+      method = translate_op(method)
+      aliased_name = Arch.cpu(method)
+      alias_method aliased_name, method
+      define_method(method) do |*args|
+        if GPU.execute_within_gpu
+          GPU::Matrix.new(self).send(method, *args)
+        else
+          send(aliased_name, *args)
+        end
+      end
+    end
+
+    [:+, :/, :-, :**, :&, :^, :|, :mult, :transpose].each(&method(:gpu_capable))
 
     def self.seed(seed)
       NArray.srand(seed)
