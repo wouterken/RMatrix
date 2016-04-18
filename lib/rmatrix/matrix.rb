@@ -9,7 +9,7 @@ module RMatrix
 
     attr_accessor :invert_next_operation, :matrix, :narray, :typecode
 
-    def initialize(source, typecode=Typecode::FLOAT)
+    def initialize(source, typecode=Typecode::SFLOAT)
       self.typecode = typecode
       self.narray   = two_dimensional(source, typecode)
     end
@@ -18,8 +18,8 @@ module RMatrix
       @matrix ||= NMatrix.refer(narray)
     end
 
-    def self.blank(rows, cols, typecode=Typecode::FLOAT)
-      self.new(NArray.new(typecode, rows * cols).reshape(cols, rows), typecode)
+    def self.blank(rows, cols, typecode=Typecode::SFLOAT)
+      self.new(NArray.new(typecode, cols, rows), typecode)
     end
 
     def _dump(level)
@@ -29,6 +29,10 @@ module RMatrix
     def self._load arg
       typecode, columns, rows, as_str = arg.split(":",4)
       Matrix.new(NArray.to_na(as_str.to_s, typecode.to_i).reshape(columns.to_i, rows.to_i), typecode.to_i)
+    end
+
+    def gpu_buffer
+      @gpu_buffer ||= GPU::buffer(self.narray)
     end
 
     def each(&block)
@@ -143,7 +147,11 @@ module RMatrix
     end
 
     def mult(other)
-      Matrix.new(self.narray * other.narray, typecode)
+      if GPU.execute_within_gpu
+        GPU::Matrix.new(self).send(method, other)
+      else
+        Matrix.new(self.narray * other.narray, typecode)
+      end
     end
 
     def ==(other)
@@ -269,7 +277,7 @@ module RMatrix
       end
     end
 
-    [:+, :/, :-, :**, :&, :^, :|, :mult, :transpose].each(&method(:gpu_capable))
+    [:+, :/, :-, :**, :&, :^, :|, :*, :mult, :transpose].each(&method(:gpu_capable))
 
     def self.seed(seed)
       NArray.srand(seed)
