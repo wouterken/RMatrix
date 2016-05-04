@@ -283,6 +283,8 @@ module RMatrix
       NArray.srand(seed)
     end
 
+    alias_method :cols, :columns
+
     private
       def test_inverse
         if self.invert_next_operation
@@ -312,6 +314,7 @@ module RMatrix
           narray.send(op, other)
         end
       end
+
 
   end
 

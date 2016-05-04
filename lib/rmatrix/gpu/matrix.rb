@@ -18,6 +18,24 @@ module RMatrix
       source.gpu_buffer
     end
 
+    def typecode
+      narray.typecode
+    end
+
+    def rows
+      narray.shape[1]
+    end
+
+    def cols
+      narray.shape[0]
+    end
+
+    def size
+      rows * cols
+    end
+
+
+
     def +(other)
       RMatrix::Matrix.new(GPU.run_program(:+, self, other))
     end

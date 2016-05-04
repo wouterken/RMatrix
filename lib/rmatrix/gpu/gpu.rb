@@ -42,7 +42,7 @@ module RMatrix
 
     def buffer(na, copy: true)
       if copy
-        context.create_buffer(na.size * na.element_size, flags: OpenCL::Mem::COPY_HOST_PTR, host_ptr: na)
+        context.create_buffer(na.to_ptr.size, flags: OpenCL::Mem::COPY_HOST_PTR, host_ptr: na.to_ptr)
       else
         context.create_buffer(na.size * na.element_size)
       end
@@ -70,10 +70,10 @@ module RMatrix
     def matrix_mult(left, right)
       prog, entry       = GPU::PROGRAMS[:matrix_mult].values
       input_buffers     = [left, right].map(&:gpu_buffer)
-      output_dimensions = [left.narray.shape[1], right.narray.shape[0]]
+      output_dimensions = [left.rows, right.cols]
       output            = NArray.new(left.narray.typecode, *output_dimensions.reverse)
       buffer_output     = GPU::buffer(output, copy: false)
-      event             = prog.send(entry, GPU::queue, output_dimensions.reverse, buffer_output, *input_buffers, OpenCL::Int.new(left.narray.shape[0]), OpenCL::Int.new(right.narray.shape[0]))
+      event             = prog.send(entry, GPU::queue, output_dimensions.reverse, buffer_output, *input_buffers, OpenCL::Int.new(left.cols), OpenCL::Int.new(right.cols))
       GPU::queue.enqueue_read_buffer(buffer_output, output, :event_wait_list => [event])
       output
     end

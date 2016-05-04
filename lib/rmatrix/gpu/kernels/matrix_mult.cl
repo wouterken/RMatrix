@@ -9,7 +9,7 @@ matrix_mult(__global float* Output,
    int ty = get_global_id(1);
 
    float result = 0;
-   for (int k = 0; k <= wLeft; ++k)
+   for (int k = 0; k < wLeft; ++k)
    {
       float elementLeft = Left[ty * wLeft + k];
       float elementRight = Right[k * wRight + tx];
