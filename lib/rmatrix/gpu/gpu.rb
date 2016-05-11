@@ -42,7 +42,7 @@ module RMatrix
 
     def buffer(na, copy: true)
       if copy
-        context.create_buffer(na.to_ptr.size, flags: OpenCL::Mem::COPY_HOST_PTR, host_ptr: na.to_ptr)
+        context.create_buffer(na.size * na.element_size, flags: OpenCL::Mem::COPY_HOST_PTR, host_ptr: na)
       else
         context.create_buffer(na.size * na.element_size)
       end
@@ -53,17 +53,14 @@ module RMatrix
     end
 
     def run_program(name, *inputs)
-      puts "Matrix #{name}"
       prog, entry   = GPU::PROGRAMS[name].values
       input_buffers = inputs.map(&:gpu_buffer)
       largest       = inputs.max_by{|input| input.narray.size }
-      output        = NArray.new(
+      output        = GPU::Matrix.new(narray: NArray.new(
         inputs.first.narray.typecode,
         *largest.narray.shape
-      )
-      buffer_output = GPU::buffer(output, copy: false)
-      event = prog.send(entry, GPU::queue, [largest.narray.size], *input_buffers, buffer_output)
-      GPU::queue.enqueue_read_buffer(buffer_output, output, :event_wait_list => [event])
+      ))
+      prog.send(entry, GPU::queue, [largest.narray.size], *input_buffers, output.gpu_buffer)
       output
     end
 
@@ -71,19 +68,18 @@ module RMatrix
       prog, entry       = GPU::PROGRAMS[:matrix_mult].values
       input_buffers     = [left, right].map(&:gpu_buffer)
       output_dimensions = [left.rows, right.cols]
-      output            = NArray.new(left.narray.typecode, *output_dimensions.reverse)
-      buffer_output     = GPU::buffer(output, copy: false)
-      event             = prog.send(entry, GPU::queue, output_dimensions.reverse, buffer_output, *input_buffers, OpenCL::Int.new(left.cols), OpenCL::Int.new(right.cols))
-      GPU::queue.enqueue_read_buffer(buffer_output, output, :event_wait_list => [event])
+      output            = GPU::Matrix.new(narray: NArray.new(left.narray.typecode, *output_dimensions.reverse))
+      prog.send(entry, GPU::queue, output_dimensions.reverse, output.gpu_buffer, *input_buffers, OpenCL::Int.new(left.cols), OpenCL::Int.new(right.cols))
       output
     end
 
     def exec
       self.gpu_exec_state << self.execute_within_gpu
       self.execute_within_gpu = true
-      result = yield
+      *results = yield
+      results.each(&:enqueue_read)
       queue.finish
-      result
+      results.map(&:to_m)
     ensure
       self.execute_within_gpu = self.gpu_exec_state.pop
     end

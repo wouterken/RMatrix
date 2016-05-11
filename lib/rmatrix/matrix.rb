@@ -148,7 +148,7 @@ module RMatrix
 
     def mult(other)
       if GPU.execute_within_gpu
-        GPU::Matrix.new(self).send(method, other)
+        GPU::Matrix.new(rmatrix: self).send(method, other)
       else
         Matrix.new(self.narray * other.narray, typecode)
       end
@@ -270,7 +270,7 @@ module RMatrix
       alias_method aliased_name, method
       define_method(method) do |*args|
         if GPU.execute_within_gpu
-          GPU::Matrix.new(self).send(method, *args)
+          GPU::Matrix.new(rmatrix: self).send(method, *args)
         else
           send(aliased_name, *args)
         end
@@ -281,6 +281,10 @@ module RMatrix
 
     def self.seed(seed)
       NArray.srand(seed)
+    end
+
+    def to_m
+      self
     end
 
     alias_method :cols, :columns
