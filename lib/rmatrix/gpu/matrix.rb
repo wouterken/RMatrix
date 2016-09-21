@@ -28,12 +28,10 @@ module RMatrix
     end
 
     def enqueue_read(*events)
-      puts "Enqueuing read"
       GPU::queue.enqueue_read_buffer(self.gpu_buffer, self.narray, :event_wait_list => events)
     end
 
     def method_missing(name, *args)
-      puts "No GPU compatible delegate for #{name}. Forwarding to source"
       to_m.send(Arch.cpu(name), *args)
     end
 

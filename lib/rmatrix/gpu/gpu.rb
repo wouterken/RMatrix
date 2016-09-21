@@ -1,7 +1,7 @@
 module RMatrix
   module GPU
     require_relative "matrix"
-    require 'opencl_ruby_ffi'
+
     extend self
 
     def load_platform(n=0)
@@ -88,26 +88,33 @@ module RMatrix
 end
 
 module RMatrix::GPU
-  PROGRAMS = {
-    :+ => {
-      source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/addition.cl"))),
-      entry: :addition
-    },
-    :mult => {
-      source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/multiplication.cl"))),
-      entry: :multiplication
-    },
-    :/ => {
-      source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/division.cl"))),
-      entry: :division
-    },
-    :- => {
-      source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/subtraction.cl"))),
-      entry: :subtraction
-    },
-    :matrix_mult => {
-      source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/matrix_mult.cl"))),
-      entry: :matrix_mult
+  begin
+    require 'opencl_ruby_ffi'
+    PROGRAMS = {
+      :+ => {
+        source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/addition.cl"))),
+        entry: :addition
+      },
+      :mult => {
+        source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/multiplication.cl"))),
+        entry: :multiplication
+      },
+      :/ => {
+        source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/division.cl"))),
+        entry: :division
+      },
+      :- => {
+        source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/subtraction.cl"))),
+        entry: :subtraction
+      },
+      :matrix_mult => {
+        source: self.build_program(IO.read(File.expand_path(File.dirname(__FILE__)+"/kernels/matrix_mult.cl"))),
+        entry: :matrix_mult
+      }
     }
-  }
+    LOADED = true
+  rescue RuntimeError => e
+    puts "OpenCL unavailable. Execute \"require 'opencl_ruby_ffi\" to diagnose"
+    puts e
+  end
 end
