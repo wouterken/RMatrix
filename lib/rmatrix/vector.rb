@@ -14,7 +14,7 @@ module RMatrix
     def self.[](*inputs)
       if inputs.length == 1 && [String, Symbol].include?(inputs[0].class)
         if ['byte', 'sint', 'int', 'sfloat', 'float', 'scomplex', 'complex', 'object'].include?(inputs[0].to_s)
-          ->(*source){ Matrix.new(source, typecode: inputs[0].to_s) }
+          ->(*source){ Matrix.new(source, inputs[0].to_s) }
         else
           Vector.new(inputs[0])
         end
