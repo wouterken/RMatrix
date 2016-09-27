@@ -20,16 +20,34 @@ module RMatrix
     end
 
     def self.blank(rows: 1, columns: 1, typecode: Typecode::SFLOAT, initial: 0)
-      self.new(NArray.new(typecode, columns, rows), typecode) + initial
+      source = self.new(NArray.new(typecode, columns, rows), typecode)
+      source.narray[]= initial unless source.empty?
+      source
+    end
+
+    def set_all(value)
+      narray[]=(value)
     end
 
     def _dump(level)
-      [narray.typecode, columns, rows, narray.to_s].join(":")
+       narray.to_s << ':' << columns.to_s << ':' << rows.to_s << ':' << narray.typecode.to_s
     end
 
     def self._load arg
-      typecode, columns, rows, as_str = arg.split(":",4)
-      Matrix.new(NArray.to_na(as_str.to_s, typecode.to_i).reshape(columns.to_i, rows.to_i), typecode.to_i)
+      split_index, buffer, index = 0, '', arg.length - 1
+      split = Array.new(3)
+      while split_index < 3
+        case char = arg[index]
+        when ':'
+          split[split_index] = buffer.reverse.to_i
+          split_index += 1
+          buffer = ''
+        else buffer << char
+        end
+        index -= 1
+      end
+      arg[index+1..-1] = ''
+      self.new(NArray.to_na(arg, split[0]).reshape(split[2], split[1]), split[0])
     end
 
     def each(&block)
@@ -257,21 +275,58 @@ module RMatrix
       [rows, columns].include?(1)
     end
 
-    def inspect
+    def to_significant_figures(x, p)
+      x.zero? ? 0 : begin
+        nm = Math.log(x, 10.0).floor + 1.0 - p
+        (((10.0 ** -nm) * x).round * (10.0 ** nm)).round(nm.abs)
+      end
+    end
+
+    def inspect(sz=10, sig=6)
       return 'M[Empty]' if empty?
       return Vector::inspect_vector(self) if self.is_vector?
-      inspect_rows    = [10, self.rows].min
-      inspect_columns = [10, self.columns].min
-      more_rows       = inspect_rows    < self.rows
-      more_columns    = inspect_columns < self.columns
+      values = condensed(10, sig, '⋮', '…', "⋱")
+      max_width = 0
+      values = values.map{|line| line.map{|val| as_str = val.to_s; max_width = [as_str.length, max_width].max; as_str}}
+      values = values.map{|line| line.map{|val| val.rjust(max_width, ' ') }}
+      "#{rows} x #{columns} Matrix\nM[#{values.map{|row| "[#{row.join(", ")}]" }.join(",\n  ")}"
+    end
 
-      to_print        = self.matrix[0...inspect_columns, 0...inspect_rows]
-      as_strings = inspect_columns.times.map do |i|
-        column    = to_print[i, 0...inspect_rows].flatten.to_a.map{|f| f.to_s.gsub(/(\.\d{4}).*/, "\\1") }
-        max_width = column.map{|s| s.length }.max
-        column.map!{|s| s.rjust(max_width, ' ')} + (more_rows ? ['.' * max_width] : [])
-      end.transpose
-      "#{rows} x #{columns} Matrix\nM#{box_lines(as_strings.map{|row| row.join(", ") }, more_columns)}"
+    def to_tex(sz = 10, sig=6)
+      values = condensed(sz, sig)
+      <<-TEX
+\\begin{pmatrix}
+#{values.map{|line| line.join(" & ")}.join(" \\\\ ")}
+\\end{pmatrix}
+TEX
+    end
+
+    def condensed(sz=10, sig=6, vdots='\\vdots', cdots='\\cdots', ddots='\\ddots')
+      width  = [sz, self.cols].min
+      height = [sz, self.rows].min
+      insert_cdots = self.cols > sz
+      insert_vdots = self.rows > sz
+
+      width  += 1 if insert_cdots
+      height += 1 if insert_vdots
+
+      blank = M.blank(rows: height, columns: width, typecode: Typecode::OBJECT)
+      blank.narray[0...width, 0...height] = self.narray[0...width, 0...height]
+
+      blank.narray[0...width, -1] = self.narray[0...width, -1]
+      blank.narray[-1,0...height] = self.narray[-1, 0...height]
+
+      blank.narray[0...width, -2] = vdots if insert_vdots
+      blank.narray[-2, 0...height] = cdots if insert_cdots
+
+      if insert_cdots && insert_vdots
+        blank.narray[-2, -2] = ddots
+        blank.narray[-1, -2] = vdots
+        blank.narray[-2, -1] = cdots
+        blank.narray[-1, -1] = self.narray[-1, -1]
+      end
+
+      blank.narray.to_a.map{|line| (sig ? Array(line).map{|v| Numeric === v ? to_significant_figures(v,sig) : v } : Array(line))}
     end
 
     def transpose
@@ -316,6 +371,10 @@ module RMatrix
         NArray === res ? Matrix.new(0, typecode)[0] : res
       else Matrix.new(self.matrix.sum(dim), typecode)
       end
+    end
+
+    def to_type(type)
+      Matrix.new(narray.to_type(type), type)
     end
 
     def self.gen_delegator(name)

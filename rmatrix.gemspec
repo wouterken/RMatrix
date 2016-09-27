@@ -5,7 +5,7 @@ require 'rmatrix/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "rmatrix"
-  spec.version       = Rmatrix::VERSION
+  spec.version       = RMatrix::VERSION
   spec.authors       = ["Wouter Coppieters"]
   spec.email         = ["wouter.coppieters@youdo.co.nz"]
 
@@ -34,6 +34,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest"
   spec.add_development_dependency "pry"
   spec.add_development_dependency "pry-byebug"
+  spec.add_development_dependency "rbczmq"
+  spec.add_development_dependency "iruby"
   spec.add_runtime_dependency "narray"
   spec.add_runtime_dependency "opencl_ruby_ffi"
 end

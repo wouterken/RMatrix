@@ -1,3 +1,3 @@
-module Rmatrix
-  VERSION = "0.1.7"
+module RMatrix
+  VERSION = "0.1.8"
 end
