@@ -166,16 +166,16 @@ class RMatrixTest < Minitest::Test
     test = M[[3,4],
              [8,9]]
     assert_equal test.stddev.round(3), 2.944
-    assert_equal test.stddev(0).round(2), V[0.7099999785423279, 0.7099999785423279]
-    assert_equal test.stddev(1).round(2), V[3.5399999618530273, 3.5399999618530273]
+    assert_equal test.stddev(0).round(2), V[0.71, 0.71]
+    assert_equal test.stddev(1).round(2), V[3.54, 3.54]
   end
 
   def test_rms
     test = M[[3,4],
              [8,9]]
     assert_equal test.rms.round(3), 6.519
-    assert_equal test.rms(0).round(2), V[3.5399999618530273, 8.510000228881836]
-    assert_equal test.rms(1).round(2), V[6.039999961853027, 6.960000038146973]
+    assert_equal test.rms(0).round(2), V[3.54, 8.51]
+    assert_equal test.rms(1).round(2), V[6.04, 6.96]
   end
 
   def test_rmsdev

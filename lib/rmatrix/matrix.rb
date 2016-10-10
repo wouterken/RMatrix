@@ -9,7 +9,7 @@ module RMatrix
     attr_accessor :invert_next_operation, :narray, :typecode, :row_map, :column_map
     attr_writer :matrix
 
-    def initialize(source, typecode=Typecode::SFLOAT, column_map: nil, row_map: nil)
+    def initialize(source, typecode=Typecode::FLOAT, column_map: nil, row_map: nil)
       self.typecode = typecode
       self.narray   = two_dimensional(source, typecode)
       self.row_map, self.column_map = row_map, column_map
@@ -19,7 +19,7 @@ module RMatrix
       @matrix ||= narray.empty? ? narray : NMatrix.refer(narray)
     end
 
-    def self.blank(rows: 1, columns: 1, typecode: Typecode::SFLOAT, initial: 0)
+    def self.blank(rows: 1, columns: 1, typecode: Typecode::FLOAT, initial: 0)
       source = self.new(NArray.new(typecode, columns, rows), typecode)
       source.narray[]= initial unless source.empty?
       source
@@ -121,6 +121,10 @@ module RMatrix
     def self.identity(size)
       blank = self.blank(rows: size, columns: size)
       blank.diagonal(1)
+    end
+
+    def self.ones(rows: 1, columns: 1)
+      self.blank(rows: rows, columns: columns, initial: 1)
     end
 
     def sum_rows
@@ -333,7 +337,7 @@ TEX
       Matrix.new(self.matrix.transpose, typecode)
     end
 
-    def self.[](*inputs, typecode: Typecode::SFLOAT, row_map: nil, column_map: nil)
+    def self.[](*inputs, typecode: Typecode::FLOAT, row_map: nil, column_map: nil)
       if inputs.length == 1 && Matrix === inputs[0]
         inputs[0]
       elsif inputs.length == 1 && [String, Symbol].include?(inputs[0].class)
@@ -403,7 +407,7 @@ TEX
     end
 
     [:fill!, :random!, :indgen!].each(&method(:gen_mutator))
-    [:reshape, :sort, :sort_index, :inverse, :lu, :delete_at, :where, :where2, :not, :-@, :reverse, :diagonal].each(&method(:gen_matrix_delegator))
+    [:reshape, :sort, :sort_index, :inverse, :lu, :delete_at, :where, :where2, :not, :-@, :reverse, :diagonal, :conjugate].each(&method(:gen_matrix_delegator))
     [:prod, :min, :max, :stddev, :mean, :rms, :rmsdev, :shape, :empty?].each(&method(:gen_delegator))
     [:byte, :sint, :int, :sfloat, :float, :scomplex, :complex, :object].each(&method(:gen_typeconstructor))
     [:+, :/, :-, :**, :&, :^, :|].each do |_op|
@@ -467,7 +471,6 @@ TEX
           narray.send(op, other)
         end
       end
-
 
   end
 
