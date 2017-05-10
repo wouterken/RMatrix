@@ -19,11 +19,9 @@ V[1.0, 2.0, 3.0]"
 
   def test_inspect_vertical
     assert_equal V[1,2,3].T.inspect, "Vector(3)
-V[
- [1.0],
- [2.0],
- [3.0]
-]"
+V[[1],
+  [2],
+  [3]]"
   end
 
   def test_transpose

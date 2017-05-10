@@ -113,9 +113,7 @@ class IndexTest < Minitest::Test
       column_map: ['Bolivia', 'Ecuador', 'Madagascar', 'Papua New Guinea', 'Rwanda', 'Average'].each_with_index.to_h,
       row_map: ['2004/05', '2005/06', '2006/07', '2007/08', '2008/09'].each_with_index.to_h
     ]
-    assert_raises(StandardError){
-      m[0,0]
-    }
+    assert_equal m[0,0], m.raw[0,0]
     assert_equal m.raw[0,0], 165
   end
 end

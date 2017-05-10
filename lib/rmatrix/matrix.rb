@@ -1,26 +1,51 @@
 module RMatrix
   class Matrix
+
+    class << self
+      attr_accessor :named_inspect
+    end
+
     require 'narray'
     require_relative 'typecode'
 
     include Enumerable
     include Indices
 
-    attr_accessor :invert_next_operation, :narray, :typecode, :row_map, :column_map
+    attr_accessor :invert_next_operation, :narray, :typecode, :row_map, :column_map, :row_label_map, :column_label_map
     attr_writer :matrix
 
-    def initialize(source, typecode=Typecode::FLOAT, column_map: nil, row_map: nil)
-      self.typecode = typecode
-      self.narray   = two_dimensional(source, typecode)
-      self.row_map, self.column_map = row_map, column_map
+    def initialize(source, typecode=Typecode::FLOAT, column_map: nil, row_map: nil, column_label_map: nil, row_label_map: nil)
+      self.typecode    = typecode
+      self.narray      = two_dimensional(source, typecode)
+      self.row_map     = row_map
+      self.column_map  = column_map
+    end
+
+    def row_map=(row_map)
+      @row_map = parse_map(row_map)
+      @row_label_map = @row_map.invert unless !@row_map || @row_map.default_proc
+    end
+
+    def column_map=(column_map)
+      @column_map = parse_map(column_map)
+      @column_label_map = @column_map.invert unless !@column_map || @column_map.default_proc
+    end
+
+    def parse_map(map, invert: false)
+      case map
+      when nil then map
+      when Array then invert ? map.each.with_index.map.to_h.invert : map.each.with_index.map.to_h
+      when Hash then map
+      else raise 'Invalid map type encountered'
+      end
     end
 
     def matrix
       @matrix ||= narray.empty? ? narray : NMatrix.refer(narray)
     end
 
-    def self.blank(rows: 1, columns: 1, typecode: Typecode::FLOAT, initial: 0)
-      source = self.new(NArray.new(typecode, columns, rows), typecode)
+    def self.blank(rows: 1, columns: 1, typecode: Typecode::FLOAT, initial: 0, column_map: nil, row_map: nil)
+      source = self.new(NArray.new(typecode, columns, rows), typecode, column_map: column_map, row_map: row_map)
       source.narray[]= initial unless source.empty?
       source
     end
@@ -30,7 +55,7 @@ module RMatrix
     end
 
     def _dump(level)
-       narray.to_s << ':' << columns.to_s << ':' << rows.to_s << ':' << narray.typecode.to_s
+      narray.to_s << ':' << columns.to_s << ':' << rows.to_s << ':' << narray.typecode.to_s
     end
 
     def self._load arg
@@ -280,28 +305,43 @@ module RMatrix
     end
 
     def to_significant_figures(x, p)
-      x.zero? ? 0 : begin
-        nm = Math.log(x, 10.0).floor + 1.0 - p
-        (((10.0 ** -nm) * x).round * (10.0 ** nm)).round(nm.abs)
-      end
+      ("%-.#{p}e" % x).gsub(/0+e/,'e').gsub('.e+00','').gsub('e+00','')
     end
 
-    def inspect(sz=10, sig=6)
-      return 'M[Empty]' if empty?
-      return Vector::inspect_vector(self) if self.is_vector?
-      values = condensed(10, sig, '⋮', '…', "⋱")
-      max_width = 0
-      values = values.map{|line| line.map{|val| as_str = val.to_s; max_width = [as_str.length, max_width].max; as_str}}
-      values = values.map{|line| line.map{|val| val.rjust(max_width, ' ') }}
-      "#{rows} x #{columns} Matrix\nM[#{values.map{|row| "[#{row.join(", ")}]" }.join(",\n  ")}"
+    def inspect(sz: 10, sig: 6, names: RMatrix::Matrix.named_inspect)
+      desc = case
+      when self.is_vector? then "Vector(#{self.length})"
+      else "Matrix(#{rows} x #{columns})"
+      end
+      "#{desc}\n#{RMatrix::MatrixTable.new(self).to_s}"
     end
 
     def to_tex(sz = 10, sig=6)
       values = condensed(sz, sig)
+      column_headers = column_label_map ? values[0].map.with_index do |v, i|
+        case v
+        when '\\cdots' then '\\cdots'
+        else (column_label_map && column_label_map[i]) || i
+        end
+      end : []
+
+      row_headers = row_label_map ? values.map.with_index do |v, i|
+        case v[0]
+        when '\\vdots' then '\\vdots'
+        else (row_label_map && row_label_map[i]) || i
+        end
+      end : []
+
       <<-TEX
-\\begin{pmatrix}
-#{values.map{|line| line.join(" & ")}.join(" \\\\ ")}
-\\end{pmatrix}
+$
+\\begin{array}{c} &
+\\begin{array}{c} #{column_headers.join(" & ")} \\end{array}\\\\
+\\begin{array}{c} #{row_headers.join(" \\\\ ")} \\end{array} &
+  \\left(\\begin{array}{ccc}
+    #{values.map{|line| line.join(" & ")}.join(" \\\\ ")}
+  \\end{array}\\right)
+\\end{array}
+$
 TEX
     end
 
@@ -333,21 +373,21 @@ TEX
       blank.narray.to_a.map{|line| (sig ? Array(line).map{|v| Numeric === v ? to_significant_figures(v,sig) : v } : Array(line))}
     end
 
-    def transpose
-      Matrix.new(self.matrix.transpose, typecode)
+    def transpose()
+      Matrix.new(self.matrix.transpose, typecode, column_map: self.row_map, row_map: self.column_map, column_label_map: self.row_label_map, row_label_map: self.column_label_map)
     end
 
-    def self.[](*inputs, typecode: Typecode::FLOAT, row_map: nil, column_map: nil)
+    def self.[](*inputs, typecode: Typecode::FLOAT, row_map: nil, column_map: nil, column_label_map: nil, row_label_map: nil)
       if inputs.length == 1 && Matrix === inputs[0]
         inputs[0]
       elsif inputs.length == 1 && [String, Symbol].include?(inputs[0].class)
         if ['byte', 'sint', 'int', 'sfloat', 'float', 'scomplex', 'complex', 'object'].include?(inputs[0])
-          ->(*source){ Matrix.new(source, inputs[0], row_map: row_map, column_map: column_map)}
+          ->(*source){ Matrix.new(source, inputs[0], row_map: row_map, column_map: column_map, row_label_map: row_label_map, column_label_map: column_label_map)}
         else
-          Matrix.new(inputs[0], typecode, row_map: row_map, column_map: column_map)
+          Matrix.new(inputs[0], typecode, row_map: row_map, column_map: column_map, row_label_map: row_label_map, column_label_map: column_label_map)
         end
       else
-        Matrix.new(inputs, typecode, row_map: row_map, column_map: column_map)
+        Matrix.new(inputs, typecode, row_map: row_map, column_map: column_map, row_label_map: row_label_map, column_label_map: column_label_map)
       end
     end
 
@@ -476,3 +516,4 @@ TEX
 
   class ::NArray; include Enumerable; end
 end
+RMatrix::Matrix.named_inspect = true
