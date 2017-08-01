@@ -62,8 +62,8 @@ module RMatrix
         def raw.[](*args, column_map: nil, row_map: nil, row_label_map: nil, column_label_map: nil)
           begin
             args.all?{|x| Fixnum === x } ? narray[*args.reverse] : Matrix.new(narray[*args.reverse], typecode, column_map: column_map, row_map: row_map, row_label_map: row_label_map, column_label_map: column_label_map)
-          rescue Exception => e
-            binding.pry
+          rescue StandardError => e
+            raise IndexError.new("Error accessing index at #{args}. Shape is #{narray.shape.reverse}")
           end
         end
 
