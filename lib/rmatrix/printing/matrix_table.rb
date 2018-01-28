@@ -1,3 +1,5 @@
+require 'rmatrix/printing/print_table'
+
 module RMatrix
   class MatrixTable < PrintTable
     def initialize(matrix, max_columns: 10, max_rows: 10)

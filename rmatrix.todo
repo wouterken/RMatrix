@@ -1,9 +1,17 @@
+ ☐ Refactor + tidy
+ Tests:
+  ☐ Indexing
+  ☐ Assignment
+ ✔ Add matrix assignment @done (17-02-28 08:32)
+ ✘ Use Numo::NArray (Not ready yet) @cancelled (16-09-29 08:23)
+ ✘ Add random int matrix @cancelled (17-02-27 09:19)
+ ✔ Implement to_tex for notebooks @done (16-09-29 08:23)
  ✔ Update print @done (16-04-06 07:40)
  ✔ Basic matrix functions and tests @done (16-04-06 07:40)
- ☐ Enumeration, each over columns, each over rows, each element, each reverse, each column/row reversed
- ☐ Map to Matrix
- ☐ Select rows
- ☐ Select columns
- ☐ Slice/Mask rows and columns
- ☐ Specs
- ☐ Float, Double, Complex, Double Complex and integer types
+ ✔ Enumeration, each over columns, each over rows, each element, each reverse, each column/row reversed @done (16-09-26 10:13)
+ ✔ Map to Matrix @done (16-09-26 10:13)
+ ✔ Select rows @done (16-09-26 10:13)
+ ✔ Select columns @done (16-09-26 10:13)
+ ✔ Slice/Mask rows and columns @done (16-09-26 10:13)
+ ✔ Specs @done (16-09-26 10:13)
+ ✔ Float, Double, Complex, Double Complex and integer types @done (16-09-26 10:13)

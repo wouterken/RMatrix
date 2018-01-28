@@ -80,7 +80,7 @@ TEX
     end
 
     def numeric_to_truncated_string(numeric)
-      ("%-.4e" % numeric).gsub(/(?<!\.)0+e/,'e').gsub('.e+00','').gsub('e+00','')
+      numeric.to_s
     end
 
     def [](column, row)
@@ -101,7 +101,4 @@ TEX
       self.row_count = [self.row_count || 0 , idx.succ].max
     end
   end
-
-
 end
-require_relative 'matrix_table'

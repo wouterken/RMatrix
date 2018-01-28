@@ -58,6 +58,21 @@ module RMatrix
       narray.to_s << ':' << columns.to_s << ':' << rows.to_s << ':' << narray.typecode.to_s
     end
 
+    def to_f
+      if length === 1
+        self[0].to_f
+      else
+        raise "Can only call to_f on vectors of length 1"
+      end
+    end
+
+    def to_i
+      if length === 1
+        self[0].to_i
+      else
+        raise "Can only call to_i on vectors of length 1"
+      end
+    end
     def self._load arg
       split_index, buffer, index = 0, '', arg.length - 1
       split = Array.new(3)
