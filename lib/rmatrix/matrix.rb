@@ -11,7 +11,8 @@ module RMatrix
     include Enumerable
     include Indices
 
-    attr_accessor :invert_next_operation, :narray, :typecode, :row_map, :column_map, :row_label_map, :column_label_map
+    attr_accessor :invert_next_operation, :narray, :typecode, :row_label_map, :column_label_map
+    attr_reader :row_map, :column_map
     attr_writer :matrix
 
     def initialize(source, typecode=Typecode::FLOAT, column_map: nil, row_map: nil, column_label_map: nil, row_label_map: nil)

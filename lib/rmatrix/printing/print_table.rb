@@ -24,26 +24,6 @@ module RMatrix
       end.join("\n")
     end
 
-    def to_tex
-      tex_map = self.row_count.times.map do |row|
-        self.column_count.times.map do |column|
-          cell_repr(self.cells[[column, row]])
-        end
-      end
-      <<-TEX
-\\[
-  \\text{Mat}_{\\varphi\\text{ to }M} = \\kbordermatrix{
-    & c_1 & c_2 & c_3 & c_4 & c_5 \\\\
-    r_1 & 1 & 1 & 1 & 1 & 1 \\\\
-    r_2 & 0 & 1 & 0 & 0 & 1 \\\\
-    r_3 & 0 & 0 & 1 & 0 & 1 \\\\
-    r_4 & 0 & 0 & 0 & 1 & 1 \\\\
-    r_5 & 0 & 0 & 0 & 0 & 1
-  }
-\\]
-TEX
-    end
-
     def column_justification(i)
       case self.column_justifications[i]
       when nil then :right
