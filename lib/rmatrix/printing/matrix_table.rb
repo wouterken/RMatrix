@@ -50,14 +50,14 @@ module RMatrix
       if column_overlap
         printed_rows.times do |row|
           self[max_columns + column_offset - 1, row + row_offset] = '…'
-          self[max_columns + column_offset, row + row_offset] = matrix[row, -1].first
+          self[max_columns + column_offset, row + row_offset] = matrix.raw[row, -1]
         end
       end
 
       if row_overlap
         printed_columns.times do |column|
           self[column + column_offset, max_rows + row_offset - 1] = '⋮'
-          self[column + column_offset, max_rows + row_offset] = matrix[-1, column].first
+          self[column + column_offset, max_rows + row_offset] = matrix.raw[-1, column]
         end
       end
 
@@ -65,7 +65,7 @@ module RMatrix
         self[printed_columns + column_offset - 1, printed_rows + row_offset - 1] = "⋱"
         self[printed_columns + column_offset - 1, printed_rows + row_offset] = '⋮'
         self[printed_columns + column_offset, printed_rows + row_offset - 1] = '…'
-        self[printed_columns + column_offset, printed_rows + row_offset]     = matrix[-1, -1].first
+        self[printed_columns + column_offset, printed_rows + row_offset]     = matrix.raw[-1, -1]
       end
 
       self[self.column_count - 1, self.row_count - 1] = ']'
