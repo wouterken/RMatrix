@@ -6,7 +6,7 @@ class VectorTest < Minitest::Test
   end
 
   def test_type_constructor
-    assert_raises(StandardError){ V[{}] }
+    assert_raises(StandardError){ V[[1,2,3],[4,5,6]] }
     assert V.object[{}]
     assert V['object'][{}]
     assert V.complex[2+3i]
@@ -22,6 +22,24 @@ V[1.0, 2.0, 3.0]"
 V[[1.0],
   [2.0],
   [3.0]]"
+  end
+
+  def test_preserves_type_for_transforms
+    assert_equal V[1,2,3,0,5].where.class, RMatrix::Vector
+  end
+
+  def test_preserves_type_for_scalars
+    assert_equal V[1,2,3,0,5].*(2).*(3).-(1).+(2)./(3.0).**(5).class, RMatrix::Vector
+  end
+
+  def test_allow_type_change_for_matrix_math
+    multiplied = V[4,5,6].T * V[1,2,3]
+    refute_equal multiplied.class, RMatrix::Vector
+    assert_equal multiplied.class, RMatrix::Matrix
+    assert_equal multiplied, \
+      M[[4.0,  8.0, 12.0],
+        [5.0, 10.0, 15.0],
+        [6.0, 12.0, 18.0]]
   end
 
   def test_transpose

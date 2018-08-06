@@ -1,25 +1,22 @@
 module RMatrix
   class Vector < RMatrix::Matrix
 
-    def initialize(source, typecode=Typecode::FLOAT)
-      if narray
-        self.narray = narray
-        self.matrix = NMatrix.refer(matrix)
-      else
-        super
+    def initialize(source, typecode=Typecode::FLOAT, column_map: nil, row_map: nil)
+      super
+      unless (shape.length == 2 && [rows, columns].include?(1)) || shape.length == 0
+        raise "Invalid dimensions #{shape.join(?x).reverse}. Vector must be eiter Nx1 or 1xM"
       end
-      raise "Invalid dimensions #{shape.join(?x).reverse}. Vector must be eiter Nx1 or 1xM" unless [rows, columns].include?(1) && shape.length == 2
     end
 
-    def self.[](*inputs)
+    def self.[](*inputs, typecode: Typecode::FLOAT, row_map: nil, column_map: nil, column_label_map: nil, row_label_map: nil)
       if inputs.length == 1 && [String, Symbol].include?(inputs[0].class)
         if ['byte', 'sint', 'int', 'sfloat', 'float', 'scomplex', 'complex', 'object'].include?(inputs[0].to_s)
-          ->(*source){ Matrix.new(source, inputs[0].to_s) }
+          ->(*source){ V.new(source, inputs[0].to_s) }
         else
           Vector.new(inputs[0])
         end
       else
-        Vector.new(inputs)
+        Vector.new(inputs, typecode, row_map: nil, column_map: nil)
       end
     end
 

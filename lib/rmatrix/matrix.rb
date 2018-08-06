@@ -130,12 +130,13 @@ module RMatrix
     end
 
     def mmap
+      return self.class.new(matrix, typecode) if shape.length == 0
       as_na = NArray.to_na(
         matrix.each.map do |elm|
           yield elm
         end
       ).to_type(typecode)
-      Matrix.new(as_na.reshape(*shape), typecode)
+      self.class.new(as_na.reshape(*shape), typecode)
     end
 
     def mask
@@ -225,9 +226,9 @@ module RMatrix
     def join(other)
       case true
       when self.rows == 1 && other.rows == 1
-        Vector.new(NArray.to_na([self.narray,other.narray]).to_type(self.typecode).reshape(self.columns + other.columns, 1))
+        self.class.new(NArray.to_na([self.narray,other.narray]).to_type(self.typecode).reshape(self.columns + other.columns, 1))
       when self.columns == 1 && other.columns == 1
-        Vector.new(NArray.to_na([self.narray,other.narray]).to_type(self.typecode).reshape(1, self.rows + other.rows))
+        self.class.new(NArray.to_na([self.narray,other.narray]).to_type(self.typecode).reshape(1, self.rows + other.rows))
       else
         raise "Couldn't join mismatched dimensions"
       end
@@ -303,12 +304,12 @@ module RMatrix
         raise "Matrix A columns(#{self.columns}) != Matrix B rows(#{other.columns})" if other.rows != self.columns
         Matrix.new(self.matrix * other.matrix, typecode)
       else
-        Matrix.new(apply_scalar(:*, other), typecode)
+        self.class.new(apply_scalar(:*, other), typecode)
       end
     end
 
     def mult(other)
-      Matrix.new(self.narray * other.narray, typecode)
+      self.class.new(self.narray * other.narray, typecode)
     end
 
     def ==(other)
@@ -432,8 +433,8 @@ TEX
     def self.gen_vec_or_matrix_delegator(name)
       define_method(name) do |*args, &blk|
         case self
-        when Matrix then Matrix.new(matrix.send(name, *args, &blk), typecode)
         when Vector then Vector.new(matrix.send(name, *args, &blk), typecode)
+        when Matrix then Matrix.new(matrix.send(name, *args, &blk), typecode)
         end
       end
     end
@@ -454,7 +455,7 @@ TEX
     end
 
     def to_type(type)
-      Matrix.new(narray.to_type(type), type)
+      self.class.new(narray.to_type(type), type)
     end
 
     def self.gen_delegator(name)
@@ -496,7 +497,7 @@ TEX
         else
           apply_scalar(op, other)
         end
-        Matrix.new(
+        self.class.new(
           result, typecode
         )
       end
