@@ -23,6 +23,10 @@ module RMatrix
       end
     end
 
+    def to_a
+      return narray.reshape(narray.length).to_a
+    end
+
     def inspect
       self.class.inspect_vector(self)
     end

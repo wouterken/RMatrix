@@ -128,7 +128,7 @@ class RMatrixTest < Minitest::Test
 
   def test_where
     with_empties = V[2,5,0,1,0,8]
-    indices = with_empties.to_a.map.with_index{|a,i| a.zero? ? nil : i.to_f}.compact
+    indices = [with_empties.to_a.map.with_index{|a,i| a.zero? ? nil : i.to_f}.compact]
     assert_equal indices, with_empties.where.to_a
   end
 

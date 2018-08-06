@@ -1,8 +1,8 @@
 require 'test_helper'
 
 class ShortcutsTest < Minitest::Test
-   def setup
-    @small = [
+  def setup
+   @small = [
       M[[3, 7, 2],
         [9, 8, 1],
         [4, 4, 2]],

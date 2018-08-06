@@ -429,6 +429,15 @@ TEX
       end
     end
 
+    def self.gen_vec_or_matrix_delegator(name)
+      define_method(name) do |*args, &blk|
+        case self
+        when Matrix then Matrix.new(matrix.send(name, *args, &blk), typecode)
+        when Vector then Vector.new(matrix.send(name, *args, &blk), typecode)
+        end
+      end
+    end
+
     def self.gen_matrix_delegator(name)
       define_method(name) do |*args, &blk|
         Matrix.new(matrix.send(name, *args, &blk), typecode)
@@ -474,7 +483,8 @@ TEX
     end
 
     [:fill!, :random!, :indgen!].each(&method(:gen_mutator))
-    [:reshape, :sort, :sort_index, :inverse, :lu, :delete_at, :where, :where2, :not, :-@, :reverse, :diagonal, :conjugate].each(&method(:gen_matrix_delegator))
+    [:reshape, :inverse, :lu, :diagonal, :conjugate].each(&method(:gen_matrix_delegator))
+    [:sort, :sort_index, :delete_at, :where, :where2, :not, :-@, :reverse].each(&method(:gen_vec_or_matrix_delegator))
     [:prod, :min, :max, :stddev, :mean, :rms, :rmsdev, :shape, :empty?].each(&method(:gen_delegator))
     [:byte, :sint, :int, :sfloat, :float, :scomplex, :complex, :object].each(&method(:gen_typeconstructor))
     [:+, :/, :-, :**, :&, :^, :|].each do |_op|
@@ -493,7 +503,6 @@ TEX
     end
 
     def to_a
-      return narray.reshape(narray.length).to_a if is_vector?
       return narray.to_a
     end
 
