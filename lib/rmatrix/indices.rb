@@ -61,7 +61,7 @@ module RMatrix
         raw = Struct.new(:narray, :typecode).new(self.narray, self.typecode)
         def raw.[](*args, column_map: nil, row_map: nil, row_label_map: nil, column_label_map: nil)
           begin
-            args.all?{|x| Fixnum === x } ? narray[*args.reverse] : Matrix.new(narray[*args.reverse], typecode, column_map: column_map, row_map: row_map, row_label_map: row_label_map, column_label_map: column_label_map)
+            args.all?{|x| 1.class === x } ? narray[*args.reverse] : Matrix.new(narray[*args.reverse], typecode, column_map: column_map, row_map: row_map, row_label_map: row_label_map, column_label_map: column_label_map)
           rescue StandardError => e
             raise IndexError.new("Error #{e.message} - accessing index at #{args}. Shape is #{narray.shape.reverse}")
           end
@@ -105,7 +105,7 @@ module RMatrix
           (0...size).each do |i|
             results[i] = i
           end
-        when Fixnum
+        when 1.class
           results[index] ||= total
           total += 1
         when Array
@@ -132,7 +132,7 @@ module RMatrix
       else
         row_index    = self.row_map ? unmap_index(self.row_map, args[0]) : args[0]
         column_index = self.column_map ? unmap_index(self.column_map, args[1]) : args[1]
-        column_index = [column_index] if column_index.kind_of?(Fixnum)
+        column_index = [column_index] if column_index.kind_of?(1.class)
         [
           row_index,
           column_index
@@ -159,7 +159,7 @@ module RMatrix
         end
       else
         index = (map[columns] rescue nil)
-        index = columns if !index && columns.kind_of?(Fixnum)
+        index = columns if !index && columns.kind_of?(1.class)
         raise "Value not present in index mapping: #{columns}" unless index
         index
       end
